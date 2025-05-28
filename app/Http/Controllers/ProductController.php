@@ -8,11 +8,21 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
-    public function index()
-    {
-        $products = Product::with('supplier')->get();
-        return view('products.index', compact('products'));
+   public function index(Request $request)
+{
+    $search = $request->input('search');
+
+    $query = Product::query();
+
+    if ($search) {
+        $query->where('name', 'like', '%' . $search . '%');
     }
+
+    $products = $query->with('supplier')->orderBy('name')->paginate(8);
+
+    return view('products.index', compact('products'));
+}
+
 
     public function create()
     {
@@ -58,7 +68,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
             'supplier_id' => 'required|exists:suppliers,id',
-            'image' => 'nullable|image|max:2048', // validação da imagem (opcional)
+            'image' => 'nullable|image|max:2048',
         ]);
 
         $product->name = $request->name;
@@ -67,7 +77,7 @@ class ProductController extends Controller
 
         if ($request->hasFile('image')) {
             $image = file_get_contents($request->file('image')->getRealPath());
-            $product->image = $image; // salvar binário no DB (como você já faz)
+            $product->image = $image;
         }
 
         $product->save();
